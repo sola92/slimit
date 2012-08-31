@@ -26,8 +26,9 @@ __author__ = 'Ruslan Spivak <ruslan.spivak@gmail.com>'
 
 
 class Node(object):
-    def __init__(self, children=None):
+    def __init__(self, children=None, lineno=-1):
         self._children_list = [] if children is None else children
+        self.lineno = lineno
 
     def __iter__(self):
         for child in self.children():
@@ -50,118 +51,111 @@ class Program(Node):
 class Block(Node):
     pass
 
-class Boolean(Node):
-    def __init__(self, value):
+class ValNode(Node):
+    def __init__(self, value, *args, **kwargs):
         self.value = value
+        super(ValNode, self).__init__(*args, **kwargs)
 
-    def children(self):
+    def childer(self):
         return []
 
-class Null(Node):
-    def __init__(self, value):
-        self.value = value
+class Boolean(ValNode):
+    pass
 
-    def children(self):
-        return []
+class Null(ValNode):
+    pass
 
-class Number(Node):
-    def __init__(self, value):
-        self.value = value
+class Number(ValNode):
+    pass
 
-    def children(self):
-        return []
+class Identifier(ValNode):
+    pass
 
-class Identifier(Node):
-    def __init__(self, value):
-        self.value = value
+class String(ValNode):
+    pass
 
-    def children(self):
-        return []
-
-class String(Node):
-    def __init__(self, value):
-        self.value = value
-
-    def children(self):
-        return []
-
-class Regex(Node):
-    def __init__(self, value):
-        self.value = value
-
-    def children(self):
-        return []
+class Regex(ValNode):
+    pass
 
 class Array(Node):
-    def __init__(self, items):
+    def __init__(self, items, *args, **kwargs):
         self.items = items
+        super(Array, self).__init__(*args, **kwargs)
 
     def children(self):
         return self.items
 
 class Object(Node):
-    def __init__(self, properties=None):
+    def __init__(self, properties=None, *args, **kwargs):
         self.properties = [] if properties is None else properties
+        super(Object, self).__init__(*args, **kwargs)
 
     def children(self):
         return self.properties
 
 class NewExpr(Node):
-    def __init__(self, identifier, args=None):
+    def __init__(self, identifier, args=None, *_args, **kwargs):
         self.identifier = identifier
         self.args = [] if args is None else args
+        super(NewExpr, self).__init__(*_args, **kwargs)
 
     def children(self):
         return [self.identifier, self.args]
 
 class FunctionCall(Node):
-    def __init__(self, identifier, args=None):
+    def __init__(self, identifier, args=None, *_args, **kwargs):
         self.identifier = identifier
         self.args = [] if args is None else args
+        super(FunctionCall, self).__init__(*_args, **kwargs)
 
     def children(self):
         return [self.identifier] + self.args
 
 class BracketAccessor(Node):
-    def __init__(self, node, expr):
+    def __init__(self, node, expr, *args, **kwargs):
         self.node = node
         self.expr = expr
+        super(BracketAccessor, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.node, self.expr]
 
 class DotAccessor(Node):
-    def __init__(self, node, identifier):
+    def __init__(self, node, identifier, *args, **kwargs):
         self.node = node
         self.identifier = identifier
+        super(DotAccessor, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.node, self.identifier]
 
 class Assign(Node):
-    def __init__(self, op, left, right):
+    def __init__(self, op, left, right, *args, **kwargs):
         self.op = op
         self.left = left
         self.right = right
+        super(Assign, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.left, self.right]
 
 class GetPropAssign(Node):
-    def __init__(self, prop_name, elements):
+    def __init__(self, prop_name, elements, *args, **kwargs):
         """elements - function body"""
         self.prop_name = prop_name
         self.elements = elements
+        super(GetPropAssign, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.prop_name] + self.elements
 
 class SetPropAssign(Node):
-    def __init__(self, prop_name, parameters, elements):
+    def __init__(self, prop_name, parameters, elements, *args, **kwargs):
         """elements - function body"""
         self.prop_name = prop_name
         self.parameters = parameters
         self.elements = elements
+        super(SetPropAssign, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.prop_name] + self.parameters + self.elements
@@ -170,194 +164,218 @@ class VarStatement(Node):
     pass
 
 class VarDecl(Node):
-    def __init__(self, identifier, initializer=None):
+    def __init__(self, identifier, initializer=None, *args, **kwargs):
         self.identifier = identifier
         self.identifier._mangle_candidate = True
         self.initializer = initializer
+        super(VarDecl, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.identifier, self.initializer]
 
 class UnaryOp(Node):
-    def __init__(self, op, value, postfix=False):
+    def __init__(self, op, value, postfix=False, *args, **kwargs):
         self.op = op
         self.value = value
         self.postfix = postfix
+        super(UnaryOp, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.value]
 
 class BinOp(Node):
-    def __init__(self, op, left, right):
+    def __init__(self, op, left, right, *args, **kwargs):
         self.op = op
         self.left = left
         self.right = right
+        super(BinOp, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.left, self.right]
 
 class Conditional(Node):
     """Conditional Operator ( ? : )"""
-    def __init__(self, predicate, consequent, alternative):
+    def __init__(self, predicate, consequent, alternative, *args, **kwargs):
         self.predicate = predicate
         self.consequent = consequent
         self.alternative = alternative
+        super(Conditional, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.predicate, self.consequent, self.alternative]
 
 class If(Node):
-    def __init__(self, predicate, consequent, alternative=None):
+    def __init__(self, predicate, consequent, alternative=None, *args,
+            **kwargs):
         self.predicate = predicate
         self.consequent = consequent
         self.alternative = alternative
+        super(If, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.predicate, self.consequent, self.alternative]
 
 class DoWhile(Node):
-    def __init__(self, predicate, statement):
+    def __init__(self, predicate, statement, *args, **kwargs):
         self.predicate = predicate
         self.statement = statement
+        super(DoWhile, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.predicate, self.statement]
 
 class While(Node):
-    def __init__(self, predicate, statement):
+    def __init__(self, predicate, statement, *args, **kwargs):
         self.predicate = predicate
         self.statement = statement
+        super(While, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.predicate, self.statement]
 
 class For(Node):
-    def __init__(self, init, cond, count, statement):
+    def __init__(self, init, cond, count, statement, *args, **kwargs):
         self.init = init
         self.cond = cond
         self.count = count
         self.statement = statement
+        super(For, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.init, self.cond, self.count, self.statement]
 
 class ForIn(Node):
-    def __init__(self, item, iterable, statement):
+    def __init__(self, item, iterable, statement, *args, **kwargs):
         self.item = item
         self.iterable = iterable
         self.statement = statement
+        super(ForIn, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.item, self.iterable, self.statement]
 
 class Continue(Node):
-    def __init__(self, identifier=None):
+    def __init__(self, identifier=None, *args, **kwargs):
         self.identifier = identifier
+        super(Continue, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.identifier]
 
 class Break(Node):
-    def __init__(self, identifier=None):
+    def __init__(self, identifier=None, *args, **kwargs):
         self.identifier = identifier
+        super(Break, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.identifier]
 
 class Return(Node):
-    def __init__(self, expr=None):
+    def __init__(self, expr=None, *args, **kwargs):
         self.expr = expr
+        super(Return, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr]
 
 class With(Node):
-    def __init__(self, expr, statement):
+    def __init__(self, expr, statement, *args, **kwargs):
         self.expr = expr
         self.statement = statement
+        super(With, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr, self.statement]
 
 class Switch(Node):
-    def __init__(self, expr, cases, default=None):
+    def __init__(self, expr, cases, default=None, *args, **kwargs):
         self.expr = expr
         self.cases = cases
         self.default = default
+        super(Switch, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr] + self.cases + [self.default]
 
 class Case(Node):
-    def __init__(self, expr, elements):
+    def __init__(self, expr, elements, *args, **kwargs):
         self.expr = expr
         self.elements = elements if elements is not None else []
+        super(Case, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr] + self.elements
 
 class Default(Node):
-    def __init__(self, elements):
+    def __init__(self, elements, *args, **kwargs):
         self.elements = elements if elements is not None else []
+        super(Default, self).__init__(*args, **kwargs)
 
     def children(self):
         return self.elements
 
 class Label(Node):
-    def __init__(self, identifier, statement):
+    def __init__(self, identifier, statement, *args, **kwargs):
         self.identifier = identifier
         self.statement = statement
+        super(Label, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.identifier, self.statement]
 
 class Throw(Node):
-    def __init__(self, expr):
+    def __init__(self, expr, *args, **kwargs):
         self.expr = expr
+        super(Throw, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr]
 
 class Try(Node):
-    def __init__(self, statements, catch=None, fin=None):
+    def __init__(self, statements, catch=None, fin=None, *args, **kwargs):
         self.statements = statements
         self.catch = catch
         self.fin = fin
+        super(Try, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.statements] + [self.catch, self.fin]
 
 class Catch(Node):
-    def __init__(self, identifier, elements):
+    def __init__(self, identifier, elements, *args, **kwargs):
         self.identifier = identifier
         # CATCH identifiers are subject to name mangling. we need to mark them.
         self.identifier._mangle_candidate = True
         self.elements = elements
+        super(Catch, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.identifier, self.elements]
 
 class Finally(Node):
-    def __init__(self, elements):
+    def __init__(self, elements, *args, **kwargs):
         self.elements = elements
+        super(Finally, self).__init__(*args, **kwargs)
 
     def children(self):
         return self.elements
 
 class Debugger(Node):
-    def __init__(self, value):
+    def __init__(self, value, *args, **kwargs):
         self.value = value
+        super(Debugger, self).__init__(*args, **kwargs)
 
     def children(self):
         return []
 
 
 class FuncBase(Node):
-    def __init__(self, identifier, parameters, elements):
+    def __init__(self, identifier, parameters, elements, *args, **kwargs):
         self.identifier = identifier
         self.parameters = parameters if parameters is not None else []
         self.elements = elements if elements is not None else []
         self._init_ids()
+        super(FuncBase, self).__init__(*args, **kwargs)
 
     def _init_ids(self):
         # function declaration/expression name and parameters are identifiers
@@ -379,37 +397,41 @@ class FuncExpr(FuncBase):
 
 
 class Comma(Node):
-    def __init__(self, left, right):
+    def __init__(self, left, right, *args, **kwargs):
         self.left = left
         self.right = right
+        super(Comma, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.left, self.right]
 
 class EmptyStatement(Node):
-    def __init__(self, value):
+    def __init__(self, value, *args, **kwargs):
         self.value = value
+        super(EmptyStatement, self).__init__(*args, **kwargs)
 
     def children(self):
         return []
 
 class ExprStatement(Node):
-    def __init__(self, expr):
+    def __init__(self, expr, *args, **kwargs):
         self.expr = expr
+        super(ExprStatement, self).__init__(*args, **kwargs)
 
     def children(self):
         return [self.expr]
 
 class Elision(Node):
-    def __init__(self, value):
+    def __init__(self, value, *args, **kwargs):
         self.value = value
+        super(Elision, self).__init__(*args, **kwargs)
 
     def children(self):
         return []
 
 class This(Node):
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super(This, self).__init__(*args, **kwargs)
 
     def children(self):
         return []

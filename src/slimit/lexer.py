@@ -95,18 +95,46 @@ class Lexer(object):
         self.prev_token = None
         self.cur_token = None
         self.next_tokens = []
+        self._built = False
         self.build()
+
+    @property
+    def lineno(self):
+        if self._built:
+            return self.lexer.lineno
+        return 1
+
+    @property
+    def lexpos(self):
+        if self._built:
+            return self.lexer.lexpos
+        return 0
 
     def build(self, **kwargs):
         """Build the lexer."""
         self.lexer = ply.lex.lex(object=self, **kwargs)
+        self._built = True
+        self.lexer.lineno = 1
 
     def input(self, text):
         self.lexer.input(text)
 
+    def consume_line_breaks(self, tok):
+        if not tok:
+            return
+        else:
+            self.lexer.lineno += tok.value.count("\n")
+
+    def wrap(self, tok):
+        self.consume_line_breaks(tok)
+        if tok:
+            tok.lineno = self.lexer.lineno
+        return tok
+
     def token(self):
         if self.next_tokens:
-            return self.next_tokens.pop()
+            next_token = self.next_tokens.pop()
+            return self.wrap(next_token)
 
         lexer = self.lexer
         while True:
@@ -120,17 +148,19 @@ class Lexer(object):
             except IndexError:
                 tok = self._get_update_token()
                 if tok is not None and tok.type == 'LINE_TERMINATOR':
+                    self.consume_line_breaks(tok)
                     continue
                 else:
-                    return tok
+                    return self.wrap(tok)
 
             if char != '/' or (char == '/' and next_char in ('/', '*')):
                 tok = self._get_update_token()
-                if tok.type in ('LINE_TERMINATOR',
-                                'LINE_COMMENT', 'BLOCK_COMMENT'):
+                if tok.type in ('LINE_TERMINATOR', 'LINE_COMMENT',
+                        'BLOCK_COMMENT'):
+                    self.consume_line_breaks(tok)
                     continue
                 else:
-                    return tok
+                    return self.wrap(tok)
 
             # current character is '/' which is either division or regex
             cur_token = self.cur_token
@@ -139,11 +169,11 @@ class Lexer(object):
                 cur_token.type in TOKENS_THAT_IMPLY_DIVISON
                 )
             if is_division_allowed:
-                return self._get_update_token()
+                return self.wrap(self._get_update_token())
             else:
                 self.prev_token = self.cur_token
                 self.cur_token = self._read_regex()
-                return self.cur_token
+                return self.wrap(self.cur_token)
 
     def auto_semi(self, token):
         if (token is None or token.type == 'RBRACE'
@@ -177,6 +207,7 @@ class Lexer(object):
         return self.cur_token
 
     def _create_semi_token(self, orig_token):
+        self.consume_line_breaks(orig_token)
         token = ply.lex.LexToken()
         token.type = 'SEMI'
         token.value = ';'
@@ -184,8 +215,8 @@ class Lexer(object):
             token.lineno = orig_token.lineno
             token.lexpos = orig_token.lexpos
         else:
-            token.lineno = 0
-            token.lexpos = 0
+            token.lineno = self.lexer.lineno
+            token.lexpos = self.lexer.lexpos
         return token
 
     # iterator protocol
@@ -196,7 +227,6 @@ class Lexer(object):
         token = self.token()
         if not token:
             raise StopIteration
-
         return token
 
     states = (
@@ -339,7 +369,7 @@ class Lexer(object):
     t_LINE_COMMENT  = r'//[^\r\n]*'
     t_BLOCK_COMMENT = r'/\*[^*]*\*+([^/*][^*]*\*+)*/'
 
-    t_LINE_TERMINATOR = r'[\n\r]+'
+    t_LINE_TERMINATOR = r'[\n]'
 
     t_ignore = ' \t'
 
@@ -405,6 +435,7 @@ class Lexer(object):
     def t_STRING(self, token):
         # remove escape + new line sequence used for strings
         # written across multiple lines of code
+        self.lexer.lineno += token.value.count("\\\n")
         token.value = token.value.replace('\\\n', '')
         return token
 
