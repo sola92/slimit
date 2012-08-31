@@ -1140,7 +1140,7 @@ class Parser(object):
         default = None
         # iterate over return values from case_block
         for item in p[5]:
-            if isinstance(item, ast.Default, lineno=p.lineno(1)):
+            if isinstance(item, ast.Default):
                 default = item
             elif isinstance(item, list):
                 cases.extend(item)
