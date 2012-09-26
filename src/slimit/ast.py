@@ -29,6 +29,7 @@ class Node(object):
     def __init__(self, children=None, lineno=-1):
         self._children_list = [] if children is None else children
         self.lineno = lineno
+        self.parent = None
 
     def __iter__(self):
         for child in self.children():
@@ -44,6 +45,40 @@ class Node(object):
         from slimit.visitors.ecmavisitor import ECMAVisitor
         visitor = ECMAVisitor()
         return visitor.visit(self)
+
+    def replace_self(self, replacement):
+        """
+            Replace this node in the AST with a new node
+
+            This is necessary if we want to change the type of a node in the AST
+            (e.g. replace a function call with a string literal) since we can't
+            rebind the whole object, just mutate the properties of the existing
+            object.
+
+            Massive hack, but it works.
+        """
+        assert self.parent is not None, "Can't do replacement without parent"
+
+        # get all valid attribs
+        attribs = [a for a in dir(self.parent)
+                    if a[0] != '_' and
+                       a not in ['children', 'to_ecma']]
+
+        # replace all instances of self in the parent
+        for attrib in attribs:
+            attr_val = getattr(self.parent, attrib, None)
+            if not attr_val:
+                continue
+
+            # if it's a list, check all members of the list for this node
+            if isinstance(attr_val, list):
+                for i in xrange(len(attr_val)):
+                    if attr_val[i] == self:
+                        attr_val[i] = replacement
+            # if it's a value, check to see if it's equal & make replacement
+            elif attr_val == self:
+                setattr(self.parent, attrib, replacement)
+
 
 class Program(Node):
     pass
