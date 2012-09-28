@@ -29,8 +29,9 @@ from slimit import ast
 
 class ECMAVisitor(object):
 
-    def __init__(self):
+    def __init__(self, no_expr_semicolon=False):
         self.indent_level = 0
+        self.no_expr_semicolon = no_expr_semicolon
 
     def _make_indent(self):
         return ' ' * self.indent_level
@@ -180,7 +181,10 @@ class ECMAVisitor(object):
         return s
 
     def visit_ExprStatement(self, node):
-        return '%s;' % self.visit(node.expr)
+        if self.no_expr_semicolon:
+            return '%s' % self.visit(node.expr)
+        else:
+            return '%s;' % self.visit(node.expr)
 
     def visit_DoWhile(self, node):
         s = 'do '

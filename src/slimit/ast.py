@@ -39,11 +39,11 @@ class Node(object):
     def children(self):
         return self._children_list
 
-    def to_ecma(self):
+    def to_ecma(self, *args, **kwargs):
         # Can't import at module level as ecmavisitor depends
         # on ast module...
         from slimit.visitors.ecmavisitor import ECMAVisitor
-        visitor = ECMAVisitor()
+        visitor = ECMAVisitor(*args, **kwargs)
         return visitor.visit(self)
 
     def replace_self(self, replacement):
